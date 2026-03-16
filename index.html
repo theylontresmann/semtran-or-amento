@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMTRAN 2026 — Dashboard Orçamentário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0e0e0c;--ink2:#1c1c19;--ink3:#252520;
+  --line:rgba(255,255,255,0.07);--line2:rgba(255,255,255,0.13);
+  --text:#e8e6df;--text2:#9c9a90;--text3:#5c5a52;
+  --gold:#c8963c;--gold-l:#f0b85a;--gold-d:rgba(200,150,60,0.14);--gold-g:rgba(200,150,60,0.06);
+  --red:#c0392b;--red-bg:rgba(192,57,43,0.12);--red-t:#f28b7d;
+  --amb:#d4820a;--amb-bg:rgba(212,130,10,0.12);--amb-t:#f0b85a;
+  --grn:#2d7d4e;--grn-bg:rgba(45,125,78,0.12);--grn-t:#6fcf8e;
+  --blu:#2563a8;--blu-bg:rgba(37,99,168,0.12);--blu-t:#7eb8f7;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'Outfit',system-ui,sans-serif;
+  --mono:'DM Mono','Courier New',monospace;
+  --r:6px;--rl:10px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--ink);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:9999}
+
+/* Loading */
+#ls{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:1000;transition:opacity .4s}
+#ls.out{opacity:0;pointer-events:none}
+.ls-mark{font-family:var(--serif);font-size:34px;color:var(--gold);letter-spacing:.06em}
+.ls-bar{width:140px;height:2px;background:var(--line2);border-radius:1px;overflow:hidden}
+.ls-fill{height:100%;background:var(--gold);border-radius:1px;animation:lbar 1.5s ease-in-out infinite}
+@keyframes lbar{0%{width:0;margin-left:0}50%{width:55%;margin-left:22%}100%{width:0;margin-left:100%}}
+#ls p{font-size:11px;color:var(--text3);font-weight:300;letter-spacing:.08em;text-transform:uppercase}
+
+/* Config banner */
+#cfgb{background:var(--amb-bg);border:1px solid rgba(212,130,10,.3);border-radius:var(--r);padding:14px 20px;margin:16px 32px;font-size:13px;color:var(--amb-t);display:none;line-height:1.7}
+#cfgb code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:12px}
+
+/* Header */
+.hdr{background:var(--ink2);border-bottom:1px solid var(--line);padding:0 32px;display:flex;align-items:stretch;justify-content:space-between;flex-wrap:wrap;position:sticky;top:0;z-index:100;min-height:58px}
+.hdr-l{display:flex;align-items:center;gap:18px;border-right:1px solid var(--line);padding-right:24px}
+.hdr-logo{font-family:var(--serif);font-size:21px;color:var(--gold);letter-spacing:.03em;white-space:nowrap}
+.hdr-sep{width:1px;height:26px;background:var(--line2)}
+.hdr-sub{font-size:10px;color:var(--text3);font-weight:300;letter-spacing:.05em;text-transform:uppercase;line-height:1.5}
+.hdr-r{display:flex;align-items:center;gap:10px;padding-left:24px}
+#upd{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.btn-rf{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--line2);background:transparent;color:var(--text2);font-size:12px;font-family:var(--sans);font-weight:500;cursor:pointer;letter-spacing:.02em;transition:all .15s}
+.btn-rf:hover{border-color:var(--gold);color:var(--gold)}
+.btn-rf svg{width:13px;height:13px}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;letter-spacing:.02em;font-family:var(--mono)}
+.b-gld{background:var(--gold-d);color:var(--gold-l);border:1px solid rgba(200,150,60,.25)}
+.b-red{background:var(--red-bg);color:var(--red-t);border:1px solid rgba(192,57,43,.3)}
+.b-amb{background:var(--amb-bg);color:var(--amb-t);border:1px solid rgba(212,130,10,.3)}
+.b-grn{background:var(--grn-bg);color:var(--grn-t);border:1px solid rgba(45,125,78,.3)}
+.b-blu{background:var(--blu-bg);color:var(--blu-t);border:1px solid rgba(37,99,168,.3)}
+
+/* Main */
+.main{max-width:1440px;margin:0 auto;padding:28px 32px}
+
+/* Metrics strip */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-bottom:26px;background:var(--ink2)}
+@media(max-width:860px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.metric{padding:20px 22px;border-right:1px solid var(--line);position:relative;transition:background .2s;cursor:default}
+.metric:last-child{border-right:none}
+.metric:hover{background:var(--ink3)}
+.metric::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .2s}
+.metric:hover::after{background:var(--gold)}
+.m-lbl{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px}
+.m-val{font-family:var(--serif);font-size:26px;color:var(--text);line-height:1.1;margin-bottom:4px}
+.m-sub{font-size:10px;color:var(--text3);font-weight:300}
+
+/* Banner */
+.bnr{border-radius:var(--r);padding:11px 16px;font-size:13px;margin-bottom:20px;border:1px solid;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.bnr-ico{font-size:14px;margin-top:1px;flex-shrink:0}
+.bn-amb{background:var(--amb-bg);border-color:rgba(212,130,10,.3);color:var(--amb-t)}
+.bn-red{background:var(--red-bg);border-color:rgba(192,57,43,.3);color:var(--red-t)}
+.bn-blu{background:var(--blu-bg);border-color:rgba(37,99,168,.3);color:var(--blu-t)}
+.bn-grn{background:var(--grn-bg);border-color:rgba(45,125,78,.3);color:var(--grn-t)}
+
+/* Tabs */
+.tbw{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px}
+.tabs{display:flex}
+.tab{padding:10px 20px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text3);font-size:13px;font-weight:500;font-family:var(--sans);cursor:pointer;letter-spacing:.02em;transition:all .15s;position:relative;bottom:-1px;white-space:nowrap}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tbmeta{display:flex;align-items:center;gap:8px;padding-bottom:10px}
+
+/* Filter */
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.fbar input,.fbar select{background:var(--ink2);border:1px solid var(--line2);border-radius:var(--r);color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 14px;outline:none;transition:border-color .15s}
+.fbar input{flex:1;min-width:200px}
+.fbar input::placeholder{color:var(--text3)}
+.fbar input:focus,.fbar select:focus{border-color:var(--gold)}
+.fbar select option{background:var(--ink2)}
+
+/* Ficha grid */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:12px}
+.fcard{background:var(--ink2);border:1px solid var(--line);border-radius:var(--rl);padding:18px 20px;cursor:pointer;transition:border-color .15s,background .15s,transform .12s;position:relative;overflow:hidden}
+.fcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .15s}
+.fcard:hover{border-color:var(--line2);background:var(--ink3);transform:translateY(-1px)}
+.fcard:hover::after{background:var(--gold-d)}
+.fcard.sel{border-color:var(--gold);background:var(--ink3)}
+.fcard.sel::after{background:var(--gold)}
+.fc-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
+.fc-num{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.fc-desc{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.fc-atv{font-size:11px;color:var(--text3);margin-top:3px;font-weight:300}
+.pb-w{margin:12px 0 10px}
+.pb-l{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:5px}
+.pb-t{height:3px;background:var(--line2);border-radius:2px;overflow:hidden}
+.pb-f{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.pok{background:var(--grn-t)}.pwn{background:var(--amb-t)}.pdn{background:var(--red-t)}
+.fc-vs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.fcvl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:3px}
+.fcvv{font-family:var(--mono);font-size:12px;color:var(--text2)}
+
+/* Detail panel */
+.dpnl{background:var(--ink2);border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:0 0 var(--rl) var(--rl);padding:24px 26px;animation:sdwn .2s ease}
+@keyframes sdwn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.dp-ey{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.dp-ti{font-family:var(--serif);font-size:22px;color:var(--text);margin-bottom:3px;line-height:1.2}
+.dp-su{font-size:12px;color:var(--text3);font-weight:300;margin-bottom:20px}
+.dp-ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
+.dp-m{background:var(--ink);padding:14px 16px}
+.dp-ml{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:6px}
+.dp-mv{font-family:var(--serif);font-size:18px;color:var(--text)}
+
+/* Emp rows */
+.slbl{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.erow{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);transition:all .12s;border-radius:var(--r)}
+.erow:last-child{border-bottom:none}
+.erow:hover{background:var(--gold-g);margin:0 -8px;padding:12px 8px}
+.ei{flex:1}
+.en{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:3px;letter-spacing:.04em}
+.ec{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.eh{font-size:12px;color:var(--text2);line-height:1.45;font-weight:300}
+.er{text-align:right;white-space:nowrap}
+.ev{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.es{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px}
+
+/* Table */
+.twrap{overflow-x:auto}
+.ctbl{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--line);border-radius:var(--rl);overflow:hidden}
+.ctbl thead{background:var(--ink3)}
+.ctbl th{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line2);white-space:nowrap}
+.ctbl td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text2)}
+.ctbl tr:last-child td{border-bottom:none}
+.ctbl tbody tr:hover td{background:var(--gold-g)}
+.ctbl tfoot td{font-weight:600;padding:14px;border-top:1px solid var(--line2);background:var(--ink3);color:var(--text);font-family:var(--mono);font-size:12px}
+.dn{color:var(--red-t);font-family:var(--mono);font-weight:500}
+.dp{color:var(--grn-t);font-family:var(--mono);font-weight:500}
+.atag{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:3px;margin-top:5px;font-family:var(--mono)}
+.at-red{background:var(--red-bg);color:var(--red-t)}
+.at-amb{background:var(--amb-bg);color:var(--amb-t)}
+
+/* Charts */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px}
+.ccrd{background:var(--ink2);border:1px solid var(--line);border-radius:var(--rl);padding:20px 22px}
+.cc-lbl{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.ccrd h3{font-family:var(--serif);font-size:17px;color:var(--text);font-weight:400;margin-bottom:18px}
+.cwrap{position:relative;height:260px}
+
+/* Alert cards */
+.acrd{border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;border:1px solid;display:flex;gap:14px;align-items:flex-start;animation:fdin .3s ease both}
+@keyframes fdin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ac-ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ac-bd{flex:1}
+.ac-ti{font-size:13px;font-weight:600;margin-bottom:4px}
+.ac-ms{font-size:12px;line-height:1.65;font-weight:300}
+.acrd-red{background:var(--red-bg);border-color:rgba(192,57,43,.3);color:var(--red-t)}
+.acrd-red .ac-ico{background:rgba(192,57,43,.2)}
+.acrd-amb{background:var(--amb-bg);border-color:rgba(212,130,10,.3);color:var(--amb-t)}
+.acrd-amb .ac-ico{background:rgba(212,130,10,.2)}
+.acrd-blu{background:var(--blu-bg);border-color:rgba(37,99,168,.3);color:var(--blu-t)}
+.acrd-blu .ac-ico{background:rgba(37,99,168,.2)}
+
+.empty{text-align:center;color:var(--text3);font-size:13px;padding:48px 0;font-weight:300;letter-spacing:.02em}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+@media(max-width:700px){.main{padding:16px}.hdr{padding:0 16px}.fgrid{grid-template-columns:1fr}.hdr-sub{display:none}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div id="ls">
+  <div class="ls-mark">SEMTRAN</div>
+  <div class="ls-bar"><div class="ls-fill"></div></div>
+  <p id="lmsg">carregando dados</p>
+</div>
+
+<div id="cfgb">
+  <strong>⚙ Configure sua planilha</strong> — Abra este arquivo em um editor de texto e substitua
+  <code>COLE_SEU_ID_AQUI</code> pelo ID da sua planilha Google Sheets.<br>
+  O ID está na URL: <code>docs.google.com/spreadsheets/d/<strong>SEU-ID</strong>/edit</code><br>
+  Lembre-se de deixar pública: <strong>Compartilhar → Qualquer pessoa com o link → Leitor</strong>.
+</div>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <span class="hdr-logo">SEMTRAN</span>
+    <div class="hdr-sep"></div>
+    <div class="hdr-sub">Dashboard Orçamentário<br>Colatina · ES · 2026</div>
+  </div>
+  <div class="hdr-r">
+    <span id="badg" class="badge b-red" style="display:none"></span>
+    <span class="badge b-gld">Exercício 2026</span>
+    <span id="upd"></span>
+    <button class="btn-rf" onclick="loadData(true)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M10 1v3.5H13.5"/></svg>
+      Atualizar
+    </button>
+  </div>
+</header>
+
+<main class="main" id="mc" style="display:none">
+  <div class="metrics" id="mtr"></div>
+  <div id="bna"></div>
+
+  <div class="tbw">
+    <nav class="tabs">
+      <button class="tab active" onclick="setTab('fichas',this)">Fichas</button>
+      <button class="tab" onclick="setTab('empenhos',this)">Empenhos</button>
+      <button class="tab" onclick="setTab('graficos',this)">Gráficos</button>
+      <button class="tab" onclick="setTab('comparativo',this)">Comparativo</button>
+      <button class="tab" onclick="setTab('alertas',this)">Alertas</button>
+    </nav>
+    <div class="tbmeta" id="tbm"></div>
+  </div>
+
+  <div id="pane-fichas">
+    <div class="fbar">
+      <input type="text" id="sf" placeholder="Buscar ficha, descrição, atividade..." oninput="renderFichas()">
+      <select id="ss" onchange="renderFichas()">
+        <option value="">Todos os status</option>
+        <option value="critico">Crítico (&gt;90%)</option>
+        <option value="atencao">Atenção (70–90%)</option>
+        <option value="ok">Ok (&lt;70%)</option>
+        <option value="zerado">Esgotado</option>
+      </select>
+      <select id="sa" onchange="renderFichas()">
+        <option value="">Todas as atividades</option>
+      </select>
+    </div>
+    <div class="fgrid" id="fg"></div>
+    <div id="da"></div>
+  </div>
+
+  <div id="pane-empenhos" style="display:none">
+    <div class="fbar"><input type="text" id="se" placeholder="Buscar credor, histórico ou nº..." oninput="renderEmpenhos()"></div>
+    <div id="ec"></div>
+  </div>
+
+  <div id="pane-graficos" style="display:none">
+    <div class="cgrid">
+      <div class="ccrd"><div class="cc-lbl">Execução</div><h3>Comprometimento por atividade</h3><div class="cwrap"><canvas id="ca"></canvas></div></div>
+      <div class="ccrd"><div class="cc-lbl">Ranking</div><h3>Maiores empenhos</h3><div class="cwrap"><canvas id="ce"></canvas></div></div>
+      <div class="ccrd" style="grid-column:1/-1"><div class="cc-lbl">Visão geral</div><h3>Saldo vs. empenhado por ficha</h3><div class="cwrap" style="height:310px"><canvas id="cf"></canvas></div></div>
+    </div>
+  </div>
+
+  <div id="pane-comparativo" style="display:none"><div id="cmp"></div></div>
+  <div id="pane-alertas" style="display:none"><div id="alt"></div></div>
+</main>
+
+<script>
+// ═══════════════════════════════════
+//  ⚙ CONFIGURAÇÃO
+// ═══════════════════════════════════
+const SHEET_ID   = '1fPItZX58NInV22K118StgZGnBKF2GZPu_rM9GtzGe8w';
+const ABA_F      = 'Fichas';
+const ABA_E      = 'Empenhos';
+const ABA_P      = 'Planilha_Custos';
+// ═══════════════════════════════════
+
+const fmt  = v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK = v=>{const n=Number(v||0);return n>=1e6?'R$ '+(n/1e6).toFixed(1)+'M':n>=1000?'R$ '+Math.round(n/1000)+'k':fmt(n)};
+const pct  = (a,b)=>b>0?Math.min(Math.round(a/b*100),100):0;
+const num  = s=>parseFloat((s||'0').toString().replace(/R\$\s*/,'').replace(/\./g,'').replace(',','.'))||0;
+
+let D={fichas:[],empenhos:[],planilha:[]},sel=null,chInited=false;
+
+async function loadData(force=false){
+  if(SHEET_ID==='COLE_SEU_ID_AQUI'){
+    hide();document.getElementById('cfgb').style.display='block';
+    document.getElementById('mc').style.display='';
+    loadFB();renderAll();return;
+  }
+  try{
+    const b=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+    const ts=force?'&_='+Date.now():'';
+    const[rF,rE,rP]=await Promise.all([fetch(b+encodeURIComponent(ABA_F)+ts),fetch(b+encodeURIComponent(ABA_E)+ts),fetch(b+encodeURIComponent(ABA_P)+ts)]);
+    const[cF,cE,cP]=await Promise.all([rF.text(),rE.text(),rP.text()]);
+    D.fichas=parseCSV(cF);D.empenhos=parseCSV(cE);D.planilha=parseCSV(cP);
+    linkD();
+    document.getElementById('upd').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){console.warn(e);loadFB();}
+  hide();document.getElementById('mc').style.display='';chInited=false;renderAll();
+}
+
+function hide(){const e=document.getElementById('ls');e.classList.add('out');setTimeout(()=>e.style.display='none',400);}
+
+function parseCSV(csv){
+  const l=csv.trim().split('\n');if(l.length<2)return[];
+  const h=spl(l[0]).map(x=>x.replace(/^"|"$/g,'').trim());
+  return l.slice(1).map(line=>{const v=spl(line);const o={};h.forEach((k,i)=>o[k]=(v[i]||'').replace(/^"|"$/g,'').trim());return o;}).filter(r=>Object.values(r).some(v=>v));
+}
+function spl(row){const r=[];let c='',q=false;for(let i=0;i<row.length;i++){if(row[i]==='"'){q=!q;continue;}if(row[i]===','&&!q){r.push(c);c='';continue;}c+=row[i];}r.push(c);return r;}
+
+function linkD(){
+  D.fichas=D.fichas.map(r=>({id:r['id']||r['Ficha']||'',atv:r['atividade']||r['Atividade']||'',desc:r['descricao']||r['Descrição']||'',fonte:r['fonte']||r['Fonte']||'',autorizada:num(r['autorizada']||r['Autorizada']||0),saldo:num(r['saldo_empenhar']||r['Saldo a Empenhar']||r['Saldo']||0),emps:[]})).filter(f=>f.id);
+  D.empenhos=D.empenhos.map(r=>({num:r['num']||r['Nº Empenho']||'',data:r['data']||r['Data']||'',ficha:r['ficha']||r['Ficha']||'',credor:r['credor']||r['Credor']||'',vlr:num(r['vlr_empenho']||r['Vlr Empenho']||r['Valor']||0),sld:num(r['sld_liq_pagar']||r['Saldo a Pagar']||r['Saldo']||0),hist:r['historico']||r['Histórico']||''})).filter(e=>e.num);
+  D.empenhos.forEach(e=>{const f=D.fichas.find(f=>f.id===e.ficha);if(f)f.emps.push(e);});
+  D.planilha=D.planilha.map(r=>({ficha:r['ficha']||r['Ficha']||'',desc:r['descricao']||r['Descrição']||'',vlrPlan:num(r['vlr_planilha']||r['Valor Planilha']||r['Valor']||0),obs:r['observacoes']||r['Observações']||'',alerta:r['alerta']||r['Alerta']||'',alertaMsg:r['alerta_msg']||r['Alerta Msg']||''})).filter(p=>p.ficha);
+}
+
+function loadFB(){
+  D.fichas=[
+    {id:'702', atv:'131 – Manutenção da Secretaria',desc:'Diárias – pessoal civil',            fonte:'150000000001 / 175200000001',autorizada:4100,      saldo:3497,      emps:[]},
+    {id:'703', atv:'131 – Manutenção da Secretaria',desc:'Material de consumo',                 fonte:'150000000001 / 175200000001',autorizada:2844.43,   saldo:1356.15,   emps:[]},
+    {id:'705', atv:'131 – Manutenção da Secretaria',desc:'Serv. Tecnologia da Informação – PJ', fonte:'150000000001',               autorizada:300,       saldo:63.57,     emps:[]},
+    {id:'1383',atv:'131 – Manutenção da Secretaria',desc:'Outros serv. terceiros – PF (JARI)',  fonte:'175200000001',               autorizada:59551.20,  saldo:0,         emps:[]},
+    {id:'728', atv:'132 – Guarda Municipal',         desc:'Material de consumo (GCM)',           fonte:'170800009999 / 175200000001',autorizada:524761,    saldo:325269.65, emps:[]},
+    {id:'1382',atv:'132 – Guarda Municipal',         desc:'Outros serv. terceiros – PF (Psicólogo)',fonte:'175200000001',           autorizada:10540,     saldo:0,         emps:[]},
+    {id:'729', atv:'132 – Guarda Municipal',         desc:'Outros serv. terceiros – PJ (GCM)',   fonte:'175200000001',               autorizada:114300,    saldo:6710.26,   emps:[]},
+    {id:'730', atv:'132 – Guarda Municipal',         desc:'Serv. TI – PJ (radiocomunicadores)',  fonte:'175200000001',               autorizada:270000,    saldo:220292.50, emps:[]},
+    {id:'731', atv:'132 – Guarda Municipal',         desc:'Despesas de exercícios anteriores',   fonte:'150000000001 / 175200000001',autorizada:14700,     saldo:11300,     emps:[]},
+    {id:'732', atv:'132 – Guarda Municipal',         desc:'Equip. e material permanente',        fonte:'172000000002',               autorizada:11400,     saldo:11400,     emps:[]},
+    {id:'734', atv:'133 – Vigias',                   desc:'Material de consumo (vigias)',         fonte:'175200000001',               autorizada:1315.57,   saldo:1315.57,   emps:[]},
+    {id:'736', atv:'133 – Vigias',                   desc:'Serv. TI – PJ (vigias)',               fonte:'175200000001',               autorizada:23587.80,  saldo:23587.80,  emps:[]},
+    {id:'786', atv:'145 – Sinalização Viária',       desc:'Material de consumo (sinalização)',    fonte:'175900000003',               autorizada:70200,     saldo:13200,     emps:[]},
+    {id:'787', atv:'145 – Sinalização Viária',       desc:'Outros serv. PJ (sinalização)',        fonte:'175200000001',               autorizada:1358500,   saldo:17422.85,  emps:[]},
+    {id:'791', atv:'145 – Sinalização Viária',       desc:'Equip. e material permanente (sinal.)',fonte:'175200000001',               autorizada:50100,     saldo:6110,      emps:[]},
+    {id:'776', atv:'241 – Transporte Público',       desc:'Subvenções econômicas (subsídio)',     fonte:'150000000001',               autorizada:6000000,   saldo:6000000,   emps:[]},
+    {id:'784', atv:'046 – Obras Infraestrutura',     desc:'Obras e instalações',                  fonte:'175000000000',               autorizada:166200,    saldo:166200,    emps:[]},
+  ];
+  D.empenhos=[
+    {num:'0000113',data:'08/01',ficha:'705', credor:'DELTA CERTIFICADORA DIGITAL LTDA',                        vlr:236.43,    sld:236.43,    hist:'Certificado digital A3 E-CPF (AE 201/2026)'},
+    {num:'0000114',data:'08/01',ficha:'703', credor:'DELTA CERTIFICADORA DIGITAL LTDA',                        vlr:192.00,    sld:192.00,    hist:'Token certificado digital A3 (AE 202/2026)'},
+    {num:'0000145',data:'09/01',ficha:'731', credor:'COLATINA HOTEL LTDA',                                     vlr:14600.00,  sld:3230.00,   hist:'Hospedagem instrutores Guarda jul–dez/2025 (ex. ant.)'},
+    {num:'0000146',data:'09/01',ficha:'1382',credor:'LORENZZO BORGES PASSAMANI',                               vlr:10540.00,  sld:340.00,    hist:'Psicólogo – porte de arma GCM (Cont. 83/2025)'},
+    {num:'0000152',data:'09/01',ficha:'730', credor:'INOVAPTT TECNOLOGIA LTDA',                                vlr:49707.50,  sld:49707.50,  hist:'Radiocomunicadores / ETA banda larga (Cont. 10/2022)'},
+    {num:'0000290',data:'19/01',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:720.00,    sld:720.00,    hist:'Marmitex GCM (AE 293/2026)'},
+    {num:'0000293',data:'19/01',ficha:'1383',credor:'JOSE CARLOS LOURENCO DA SILVA',                          vlr:29775.60,  sld:992.52,    hist:'Gratificação JARI jan–dez/2026'},
+    {num:'0000294',data:'19/01',ficha:'1383',credor:'RAFAELLA REIS BATISTA',                                  vlr:29775.60,  sld:992.52,    hist:'Gratificação JARI jan–dez/2026'},
+    {num:'0000409',data:'21/01',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:2403.50,   sld:2403.50,   hist:'Coffee break reunião GCM – 11/02'},
+    {num:'0000947',data:'23/01',ficha:'787', credor:'FIRE HORIZONTAL LTDA',                                   vlr:1281077.15,sld:1114765.15,hist:'Sinalização viária – Cont. 45/2025 (jan–jul/2026)'},
+    {num:'0001571',data:'06/02',ficha:'728', credor:'INSTALAR COMÉRCIO E SERVIÇOS EM AR CONDICIONADO EIRELI', vlr:386.55,    sld:386.55,    hist:'Tubulação adicional ar-cond. sede GCM'},
+    {num:'0001613',data:'09/02',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:1353.00,   sld:1353.00,   hist:'Coffee break reunião PM/PC/GCM – 12/02'},
+    {num:'0001691',data:'10/02',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:454.30,    sld:454.30,    hist:'Coffee break GGIM – 19/02'},
+    {num:'0001715',data:'11/02',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:6274.00,   sld:6274.00,   hist:'Coffee break reuniões mensais fev–jun/2026'},
+    {num:'0001741',data:'13/02',ficha:'729', credor:'PRIME MIT VEICULOS LTDA',                                vlr:5344.00,   sld:5344.00,   hist:'Revisão L-200 Triton GCM (Proc. 3681/2026)'},
+    {num:'0002600',data:'25/02',ficha:'728', credor:'PRIME CONSULTORIA E ASSESSORIA EMPRESARIAL LTDA EPP',    vlr:35000.00,  sld:35000.00,  hist:'Sistema combustível GCM – Cont. 09/2025'},
+    {num:'0002601',data:'25/02',ficha:'786', credor:'PRIME CONSULTORIA E ASSESSORIA EMPRESARIAL LTDA EPP',    vlr:12000.00,  sld:12000.00,  hist:'Sistema combustível sinalização – Cont. 09/2025'},
+    {num:'0002614',data:'25/02',ficha:'787', credor:'CENTRO AMERICA COMERCIO SERVICO GESTAO TECNOLOGICA LTDA',vlr:60000.00,  sld:60000.00,  hist:'Gerenciamento frota sinalização – Cont. 20/2025'},
+    {num:'0002615',data:'25/02',ficha:'729', credor:'CENTRO AMERICA COMERCIO SERVICO GESTAO TECNOLOGICA LTDA',vlr:100000.00, sld:100000.00, hist:'Gerenciamento frota GCM – Cont. 20/2025'},
+    {num:'0002617',data:'26/02',ficha:'729', credor:'ORVEL AUTOMOTOR RNT LTDA',                               vlr:2245.74,   sld:2245.74,   hist:'Revisão 10.000 km Renault Duster ×3 GCM'},
+    {num:'0002643',data:'02/03',ficha:'702', credor:'RAFAEL LEAO COFFLER',                                    vlr:57.00,     sld:57.00,     hist:'Diária – deslocamento Serra/ES'},
+    {num:'0002645',data:'02/03',ficha:'728', credor:'CARLOS BALBINO SERRANO',                                 vlr:600.00,    sld:600.00,    hist:'Suprimento de fundos jan/2026'},
+    {num:'0002713',data:'02/03',ficha:'702', credor:'CARLOS BALBINO SERRANO',                                 vlr:273.00,    sld:273.00,    hist:'Diárias visita CIVIT RJ – 27/03'},
+    {num:'0002716',data:'02/03',ficha:'702', credor:'THEYLON ELEOTERIO TRESMANN',                            vlr:273.00,    sld:273.00,    hist:'Diárias visita CIVIT RJ – 27/03'},
+    {num:'0002742',data:'03/03',ficha:'728', credor:'PRIME CONSULTORIA E ASSESSORIA EMPRESARIAL LTDA EPP',    vlr:150000.00, sld:150000.00, hist:'Combustível GCM – TA 01/Cont. 09/2025 (fev–dez)'},
+    {num:'0002743',data:'03/03',ficha:'786', credor:'PRIME CONSULTORIA E ASSESSORIA EMPRESARIAL LTDA EPP',    vlr:45000.00,  sld:45000.00,  hist:'Combustível sinalização – TA 01/Cont. 09/2025'},
+    {num:'0002746',data:'03/03',ficha:'791', credor:'AJAPI E-COMMERCE DE MAQUINAS E EQUIPAMENTOS LTDA',       vlr:43990.00,  sld:43990.00,  hist:'Máquina de pintura Airless – sinalização'},
+    {num:'0002754',data:'04/03',ficha:'728', credor:'I D M ALIMENTOS LIGHT COMERCIO LTDA ME',                 vlr:2300.00,   sld:2300.00,   hist:'Marmitex e refrigerantes – operações especiais GCM'},
+    {num:'0002812',data:'10/03',ficha:'703', credor:'JR DECORACOES E COMERCIO EM GERAL LTDA',                vlr:1296.28,   sld:1296.28,   hist:'Persianas PVC sede SEMTRAN'},
+  ];
+  D.planilha=[
+    {ficha:'729', desc:'Manutenção de viaturas',        vlrPlan:406000,    obs:'Contrato 20/2025', alerta:'warn',alertaMsg:'Contrato vence 09/04/2026 – providenciar TA'},
+    {ficha:'74X', desc:'Videomonitoramento',             vlrPlan:900000,    obs:'Nova ficha',       alerta:'red', alertaMsg:'Ficha inexistente no orçamento!'},
+    {ficha:'728', desc:'IMPO',                           vlrPlan:51000,     obs:'',                 alerta:'',    alertaMsg:''},
+    {ficha:'732', desc:'Taser',                          vlrPlan:85000,     obs:'',                 alerta:'',    alertaMsg:''},
+    {ficha:'786', desc:'Combustível',                    vlrPlan:250000,    obs:'Cont. 009/2025',   alerta:'red', alertaMsg:'Contrato venceu 25/02/2026 – verificar TA'},
+    {ficha:'751', desc:'Material da educação',           vlrPlan:340000,    obs:'Dist. gratuita',   alerta:'warn',alertaMsg:'Verificar dotação'},
+    {ficha:'730', desc:'Radiocomunicadores dos Guardas', vlrPlan:213032.16, obs:'Cont. 010/2022',   alerta:'red', alertaMsg:'Contrato vence 25/03/2026 – urgente!'},
+    {ficha:'1383',desc:'JARI – gratificação',            vlrPlan:59551.29,  obs:'Decreto 31/12',    alerta:'',    alertaMsg:''},
+    {ficha:'776', desc:'Subsídio da passagem',           vlrPlan:6000000,   obs:'Concessão 2035',   alerta:'',    alertaMsg:''},
+  ];
+  D.empenhos.forEach(e=>{const f=D.fichas.find(f=>f.id===e.ficha);if(f)f.emps.push(e);});
+}
+
+function renderAll(){renderMtr();buildAtvFlt();renderFichas();updBadge();}
+
+function renderMtr(){
+  const tA=D.fichas.reduce((s,f)=>s+f.autorizada,0);
+  const tE=D.empenhos.reduce((s,e)=>s+e.vlr,0);
+  const tP=D.empenhos.reduce((s,e)=>s+e.sld,0);
+  const tD=D.fichas.reduce((s,f)=>s+f.saldo,0);
+  document.getElementById('mtr').innerHTML=[
+    ['Orçamento autorizado',fmtK(tA),D.fichas.length+' fichas'],
+    ['Total empenhado',fmtK(tE),D.empenhos.length+' empenhos'],
+    ['Saldo a pagar',fmtK(tP),'compromissos em aberto'],
+    ['Saldo disponível',fmtK(tD),'a empenhar'],
+    ['Comprometimento',pct(tE,tA)+'%','empenhos / autorizado'],
+  ].map(([l,v,s])=>`<div class="metric"><div class="m-lbl">${l}</div><div class="m-val">${v}</div><div class="m-sub">${s}</div></div>`).join('');
+  const n=D.planilha.filter(p=>p.alerta==='red').length;
+  document.getElementById('bna').innerHTML=n?`<div class="bnr bn-amb"><span class="bnr-ico">⚠</span><div>${n} item(ns) com alertas críticos na Planilha de Custos. Veja a aba <strong>Alertas</strong>.</div></div>`:'';
+}
+
+function updBadge(){const n=D.planilha.filter(p=>p.alerta).length;const b=document.getElementById('badg');b.style.display=n?'':'none';b.textContent=n+' alertas';}
+
+function buildAtvFlt(){
+  const s=document.getElementById('sa');
+  s.innerHTML='<option value="">Todas as atividades</option>';
+  [...new Set(D.fichas.map(f=>f.atv))].forEach(a=>{const o=document.createElement('option');o.value=o.text=a;s.appendChild(o);});
+}
+
+function getSt(f){const e=f.emps.reduce((s,x)=>s+x.vlr,0);const p=pct(e,f.autorizada);if(f.saldo<=0&&f.autorizada>0)return'zerado';if(p>=90)return'critico';if(p>=70)return'atencao';return'ok';}
+function stBadge(s){const m={zerado:['b-red','Esgotado'],critico:['b-red','Crítico'],atencao:['b-amb','Atenção'],ok:['b-grn','Ok']};return`<span class="badge ${m[s][0]}">${m[s][1]}</span>`;}
+function pCls(p){return p>=90?'pdn':p>=70?'pwn':'pok';}
+
+function renderFichas(){
+  const q=document.getElementById('sf').value.toLowerCase();
+  const st=document.getElementById('ss').value;
+  const at=document.getElementById('sa').value;
+  const list=D.fichas.filter(f=>(!q||f.id.includes(q)||f.desc.toLowerCase().includes(q)||f.atv.toLowerCase().includes(q))&&(!st||getSt(f)===st)&&(!at||f.atv===at));
+  setMeta(list.length+' fichas');
+  const g=document.getElementById('fg');
+  if(!list.length){g.innerHTML='<div class="empty">Nenhuma ficha encontrada</div>';document.getElementById('da').innerHTML='';return;}
+  g.innerHTML=list.map(f=>{
+    const e=f.emps.reduce((s,x)=>s+x.vlr,0),p=pct(e,f.autorizada),iS=sel&&sel.id===f.id;
+    return`<div class="fcard${iS?' sel':''}" onclick="togF('${f.id}')">
+      <div class="fc-hd"><div style="flex:1;min-width:0"><div class="fc-num">Ficha ${f.id}</div><div class="fc-desc">${f.desc}</div><div class="fc-atv">${f.atv}</div></div>${stBadge(getSt(f))}</div>
+      <div class="pb-w"><div class="pb-l"><span>${fmt(e)}</span><span>${p}%</span></div><div class="pb-t"><div class="pb-f ${pCls(p)}" style="width:${p}%"></div></div></div>
+      <div class="fc-vs">
+        <div><div class="fcvl">Autorizado</div><div class="fcvv">${fmtK(f.autorizada)}</div></div>
+        <div><div class="fcvl">Saldo</div><div class="fcvv">${fmtK(f.saldo)}</div></div>
+        <div><div class="fcvl">Empenhos</div><div class="fcvv">${f.emps.length}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  renderDet();
+}
+
+function togF(id){sel=(sel&&sel.id===id)?null:D.fichas.find(f=>f.id===id);renderFichas();if(sel)setTimeout(()=>document.getElementById('da').scrollIntoView({behavior:'smooth',block:'start'}),60);}
+
+function renderDet(){
+  const el=document.getElementById('da');
+  if(!sel){el.innerHTML='';return;}
+  const f=sel,e=f.emps.reduce((s,x)=>s+x.vlr,0),p=pct(e,f.autorizada),sd=f.emps.reduce((s,x)=>s+x.sld,0);
+  const als=afAls(f);
+  el.innerHTML=`<div class="dpnl">
+    <div class="dp-ey">Ficha ${f.id}</div>
+    <div class="dp-ti">${f.desc}</div>
+    <div class="dp-su">${f.atv} · Fonte: ${f.fonte}</div>
+    ${als.map(a=>`<div class="bnr bn-${a.t}" style="margin-bottom:10px"><span class="bnr-ico">${a.t==='red'?'✕':a.t==='amb'?'⚠':'ℹ'}</span><div>${a.m}</div></div>`).join('')}
+    <div class="dp-ms">
+      <div class="dp-m"><div class="dp-ml">Autorizado</div><div class="dp-mv">${fmt(f.autorizada)}</div></div>
+      <div class="dp-m"><div class="dp-ml">Empenhado</div><div class="dp-mv">${fmt(e)}</div></div>
+      <div class="dp-m"><div class="dp-ml">Comprometido</div><div class="dp-mv">${p}%</div></div>
+      <div class="dp-m"><div class="dp-ml">Saldo a empenhar</div><div class="dp-mv">${fmt(f.saldo)}</div></div>
+      <div class="dp-m"><div class="dp-ml">Saldo a pagar</div><div class="dp-mv">${fmt(sd)}</div></div>
+      <div class="dp-m"><div class="dp-ml">Empenhos</div><div class="dp-mv">${f.emps.length}</div></div>
+    </div>
+    ${f.emps.length?`<div class="slbl">Empenhos vinculados</div>${f.emps.map(x=>`<div class="erow"><div class="ei"><div class="en">${x.num} · ${x.data}</div><div class="ec">${x.credor}</div><div class="eh">${x.hist}</div></div><div class="er"><div class="ev">${fmt(x.vlr)}</div><div class="es">saldo ${fmt(x.sld)}</div></div></div>`).join('')}`:'<div class="empty">Nenhum empenho nesta ficha</div>'}
+  </div>`;
+}
+
+function afAls(f){
+  const als=[],e=f.emps.reduce((s,x)=>s+x.vlr,0),p=pct(e,f.autorizada);
+  if(f.saldo<=0&&f.autorizada>0)als.push({t:'red',m:'Dotação esgotada — sem saldo para novos empenhos.'});
+  else if(p>=90)als.push({t:'red',m:`${p}% comprometido. Saldo crítico: ${fmt(f.saldo)}.`});
+  else if(p>=70)als.push({t:'amb',m:`${p}% comprometido — acompanhar execução.`});
+  if(f.id==='787')als.push({t:'red',m:'Empenho de R$&nbsp;1.281.077 (Fire Horizontal) quase esgota a ficha. Contrato até jul/2026 — avaliar crédito adicional.'});
+  if(f.id==='730')als.push({t:'amb',m:'Contrato Inovaptt (radiocomunicadores) vence 25/03/2026. Renovação urgente.'});
+  if(f.id==='729')als.push({t:'amb',m:'Contrato Centro América (gerenciamento de frota) vence 09/04/2026.'});
+  if(f.id==='1383')als.push({t:'blu',m:'JARI: empenhos anuais cobrem jan–dez/2026 integralmente. Acréscimos exigem crédito adicional.'});
+  return als;
+}
+
+function renderEmpenhos(){
+  const q=document.getElementById('se').value.toLowerCase();
+  const list=D.empenhos.filter(e=>!q||e.credor.toLowerCase().includes(q)||e.hist.toLowerCase().includes(q)||e.num.includes(q));
+  const tot=list.reduce((s,e)=>s+e.vlr,0);
+  setMeta(list.length+' empenhos · '+fmt(tot));
+  document.getElementById('ec').innerHTML=
+    `<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:16px;letter-spacing:.06em">${list.length} REGISTRO(S) · TOTAL ${fmt(tot)}</div>
+    <div style="background:var(--ink2);border:1px solid var(--line);border-radius:var(--rl);padding:4px 16px">
+    ${list.map(e=>{const f=D.fichas.find(f=>f.id===e.ficha);return`<div class="erow"><div class="ei"><div class="en">${e.num} · ${e.data} · <span style="color:var(--gold)">${e.ficha}</span></div><div class="ec">${e.credor}</div><div class="eh">${e.hist}</div>${f?`<div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${f.atv}</div>`:''}</div><div class="er"><div class="ev">${fmt(e.vlr)}</div><div class="es">saldo ${fmt(e.sld)}</div></div></div>`;}).join('')}
+    </div>`;
+}
+
+function renderGraficos(){
+  if(chInited)return;chInited=true;
+  Chart.defaults.color='#5c5a52';Chart.defaults.borderColor='rgba(255,255,255,0.07)';
+  const aM={};D.fichas.forEach(f=>{if(!aM[f.atv])aM[f.atv]={a:0,e:0};aM[f.atv].a+=f.autorizada;aM[f.atv].e+=f.emps.reduce((s,x)=>s+x.vlr,0);});
+  const aL=Object.keys(aM).map(k=>k.split('–')[1]?.trim()||k);
+  new Chart(document.getElementById('ca'),{type:'bar',data:{labels:aL,datasets:[{label:'Empenhado',data:Object.values(aM).map(v=>Math.round(v.e)),backgroundColor:'#c8963c'},{label:'Saldo',data:Object.values(aM).map(v=>Math.round(v.a-v.e)),backgroundColor:'rgba(255,255,255,0.07)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#9c9a90',font:{family:'DM Mono',size:11}}}},scales:{x:{stacked:true,ticks:{color:'#5c5a52',font:{size:11}}},y:{stacked:true,ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',color:'#5c5a52',font:{size:11}}}}}});
+  const sr=[...D.empenhos].sort((a,b)=>b.vlr-a.vlr).slice(0,8);
+  new Chart(document.getElementById('ce'),{type:'bar',data:{labels:sr.map(e=>e.credor.split(' ').slice(0,3).join(' ')),datasets:[{label:'Valor',data:sr.map(e=>Math.round(e.vlr)),backgroundColor:'#c8963c',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',color:'#5c5a52',font:{size:11}}},y:{ticks:{color:'#9c9a90',font:{size:11}}}}}});
+  const mf=D.fichas.filter(f=>f.autorizada>=10000);
+  new Chart(document.getElementById('cf'),{type:'bar',data:{labels:mf.map(f=>'F.'+f.id),datasets:[{label:'Empenhado',data:mf.map(f=>Math.round(f.emps.reduce((s,e)=>s+e.vlr,0))),backgroundColor:'rgba(192,57,43,0.75)',borderRadius:2},{label:'Saldo',data:mf.map(f=>Math.round(f.saldo)),backgroundColor:'rgba(45,125,78,0.6)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#9c9a90',font:{family:'DM Mono',size:11}}}},scales:{x:{stacked:true,ticks:{color:'#5c5a52',font:{size:11}}},y:{stacked:true,ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',color:'#5c5a52',font:{size:11}}}}}});
+}
+
+function renderComp(){
+  const tP=D.planilha.reduce((s,p)=>s+p.vlrPlan,0),tA=D.fichas.reduce((s,f)=>s+f.autorizada,0);
+  const rows=D.planilha.map(p=>{
+    const f=D.fichas.find(f=>f.id===p.ficha||f.id===p.ficha.split('/')[0]);
+    const a=f?f.autorizada:null,d=a!==null?a-p.vlrPlan:null;
+    const dH=d!==null?`<span class="${d<0?'dn':'dp'}">${d<0?'−':'+'} ${fmt(Math.abs(d))}</span>`:'<span class="dn">—</span>';
+    return`<tr><td style="font-family:var(--mono);font-size:11px;color:var(--gold)">${p.ficha}</td><td style="color:var(--text)">${p.desc}</td><td style="text-align:right;font-family:var(--mono);color:var(--text2)">${fmt(p.vlrPlan)}</td><td style="text-align:right;font-family:var(--mono)">${a!==null?`<span style="color:var(--text2)">${fmt(a)}</span>`:'<span class="dn">Não localizada</span>'}</td><td style="text-align:right">${dH}</td><td style="color:var(--text3);font-size:12px">${p.obs}${p.alerta?`<br><span class="atag ${p.alerta==='red'?'at-red':'at-amb'}">${p.alertaMsg}</span>`:''}</td></tr>`;
+  });
+  const d=tA-tP;
+  document.getElementById('cmp').innerHTML=`<p style="font-size:13px;color:var(--text3);margin-bottom:18px;font-weight:300;line-height:1.6">Cruzamento entre a Planilha de Custos 2026 e o Saldo das Dotações. Diferenças negativas indicam onde o planejado supera a dotação aprovada.</p><div class="twrap"><table class="ctbl"><thead><tr><th>Ficha</th><th>Despesa planejada</th><th style="text-align:right">Vlr. planilha</th><th style="text-align:right">Dotação autorizada</th><th style="text-align:right">Diferença</th><th>Observações</th></tr></thead><tbody>${rows.join('')}</tbody><tfoot><tr><td colspan="2">Total geral</td><td style="text-align:right">${fmt(tP)}</td><td style="text-align:right">${fmt(tA)}</td><td style="text-align:right"><span class="${d<0?'dn':'dp'}">${d<0?'−':'+'} ${fmt(Math.abs(d))}</span></td><td>—</td></tr></tfoot></table></div>`;
+}
+
+function renderAlts(){
+  const pAls=D.planilha.filter(p=>p.alerta).map(p=>({tipo:p.alerta==='red'?'red':'amb',icon:p.alerta==='red'?'✕':'⚠',titulo:`Ficha ${p.ficha} — ${p.desc}`,msg:p.alertaMsg+(p.obs?` · ${p.obs}`:'')}));
+  const fx=[
+    {tipo:'red',icon:'✕',titulo:'Ficha 787 — saldo crítico de sinalização viária',msg:`R$&nbsp;1.281.077 empenhados pela Fire Horizontal. Saldo real: <strong>${fmt(17422.85)}</strong>. Contrato até jul/2026 — avaliar crédito adicional.`},
+    {tipo:'blu',icon:'ℹ',titulo:'Ficha 1383 — JARI totalmente comprometida',msg:'Dois empenhos anuais cobrem jan–dez/2026 integralmente. Qualquer despesa adicional exige crédito adicional.'},
+  ];
+  document.getElementById('alt').innerHTML=[...pAls,...fx].map((a,i)=>
+    `<div class="acrd acrd-${a.tipo}" style="animation-delay:${i*.05}s"><div class="ac-ico">${a.icon}</div><div class="ac-bd"><div class="ac-ti">${a.titulo}</div><div class="ac-ms">${a.msg}</div></div></div>`
+  ).join('');
+}
+
+function setMeta(t){document.getElementById('tbm').innerHTML=`<span style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.06em">${t}</span>`;}
+
+function setTab(t,btn){
+  ['fichas','empenhos','graficos','comparativo','alertas'].forEach(p=>document.getElementById('pane-'+p).style.display=p===t?'':'none');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  if(t==='empenhos')renderEmpenhos();
+  if(t==='graficos')renderGraficos();
+  if(t==='comparativo')renderComp();
+  if(t==='alertas')renderAlts();
+}
+
+loadData();
+</script>
+</body>
+</html>
